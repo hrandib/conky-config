@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # install conky on debian based os with requirements
-sudo apt install conky-all git fonts-font-awesome grep -y
+sudo apt install conky-all git fonts-font-awesome libx11-dev grep -y
 
 CONKY_PATH=~/.config/conky
 AUTOSTART="/etc/xdg/autostart"
