@@ -14,12 +14,12 @@ PRIMARY_START_Y=$( echo $PRIMARY | sed  --expression="s/ /\n/g" | tail -n1  )
 PRIMARY_END_X=$(( $PRIMARY_START_X+$PRIMARY_WIDTH ))
 
 #Conky Position on primary monitor 10px plus for inner padding and 40px for ubuntu top bar
-CONKY_X=$(( $CURRENT_WIDTH-$PRIMARY_END_X+10 ))
-CONKY_Y=$(( $PRIMARY_START_Y+40 ))
+CONKY_X=$(( $CURRENT_WIDTH-$PRIMARY_END_X - 430 ))
+CONKY_Y=$(( $PRIMARY_START_Y - 120 ))
 
-#  Get secondary monitor resolution
-# SECONDARY_WIDTH=$( xrandr | grep -o ' connected [0-9]*x[0-9]*'| grep -o '[0-9]*x[0-9]*' | grep -o '^[0-9]*' )
-# SECONDARY_HEIGHT=$( xrandr | grep -o ' connected [0-9]*x[0-9]*'| grep -o '[0-9]*x[0-9]*' | grep -o '[0-9]*$' )
+Get secondary monitor resolution
+#SECONDARY_WIDTH=$( xrandr | grep -o ' connected [0-9]*x[0-9]*'| grep -o '[0-9]*x[0-9]*' | grep -o '^[0-9]*' )
+#SECONDARY_HEIGHT=$( xrandr | grep -o ' connected [0-9]*x[0-9]*'| grep -o '[0-9]*x[0-9]*' | grep -o '[0-9]*$' )
 
 if [[ $PRIMARY_HEIGHT == $CURRENT_HEIGHT ]]; then
 	conky -x $CONKY_X -y 0 -a 'middle_right'

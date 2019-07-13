@@ -26,6 +26,11 @@ function conky_main()
     cr=nil
 end
 
+function lines(s)
+    if s:sub(-1)~="\n" then s=s.."\n" end
+    return s:gmatch("(.-)\n")
+end
+
 -- Returns processor name
 function conky_processor()
     if processor == '' then
@@ -42,6 +47,7 @@ function conky_distribution()
     if distribution == '' then
         local file = io.popen('cat /etc/lsb-release | grep -Po --regexp "(?<=DISTRIB_ID=).*$"')
         distribution = trim(file:read("*a"))
+        file:close()
         file = io.popen('cat /etc/lsb-release | grep -Po --regexp "(?<=DISTRIB_RELEASE=).*$"')
         distribution = distribution .. " " .. trim(file:read("*a"))
         file:close()
@@ -54,21 +60,27 @@ end
 function conky_mountmedia(n)
     if tonumber(conky_parse("$updates")) % 2 == 0 then
         local file = io.popen('lsblk | grep -oE ".*sd.* part /.*" | grep -oE "(/.*)"')
+        local all_media = file:read("*a")
+        file:close()
         local count = 1
         local media = ''
-        for line in file:lines() do
-            local short_name = string.sub(string.sub(trim(line), string.find(trim(line), '/[^/]*$')), 1)
+        for line in lines(all_media) do
+            line = trim(line)
+            local short_name = string.sub(string.sub(line, string.find(line, '/[^/]*$')), 1)
+            local start, finish = string.find(short_name, '%S+%s%S+')
+            if start ~= nil then
+                short_name = string.sub(short_name, 1, finish)
+            end
             if count <= tonumber(n) then
                 media = media
-                        .. "${goto 10}".. short_name .. "${goto  150}${fs_bar 7,70 " .. trim(line)
-                        .. "}${goto 255}${fs_used " .. trim(line) .. "}/${fs_size " .. trim(line) .. "}"
+                        .. "${goto 10}".. short_name .. "${goto  150}${fs_bar 7,70 " .. line
+                        .. "}${goto 255}${fs_used " .. line .. "}/${fs_size " .. line .. "}"
                         .. "\n"
             else
                 break
             end
             count = count + 1
         end
-        file:close()
         mounted_media = media
         return media
     end 
@@ -141,40 +153,26 @@ end
 -- Returns CPU temperature in Celsius
 function conky_cputemp()
     if tonumber(conky_parse("$updates")) % 2 == 0 or ctemp == 0 then
-        local all_hwmon_temp_names = io.popen('ls /sys/class/hwmon/*/temp* | grep -Po --regexp ".*(label)$"')
+        local file = io.popen('ls -1 /sys/class/hwmon/hwmon?/name')
+        all_hwmon_temp_names = file:read("*a")
+        file:close()
         local cpu_temp_file = ''
-        for l in all_hwmon_temp_names:lines() do
-            local name = io.popen('cat ' .. l):read("*a")
-            if name:match("^Package*") then
-                cpu_temp_file = l:gsub("label", "input")
+        for l in lines(all_hwmon_temp_names) do
+            file = io.popen('cat ' .. l)
+            local name = file:read("*a")
+            file:close()
+            if name:match("^k10temp*") then
+                cpu_temp_file = l:gsub("name", "temp1_input")
                 break
             end
         end
-        all_hwmon_temp_names:close()
         cpu_temp_file = io.open(cpu_temp_file, "r")
-        local cpu_temp = tonumber(cpu_temp_file:read("*a"))  / 1000
-        ctemp = cpu_temp
+        local cpu_temp = math.floor((tonumber(cpu_temp_file:read("*a"))  / 1000) + 0.5)
         cpu_temp_file:close()
+        ctemp = cpu_temp
         return cpu_temp
     end
     return ctemp
-end
-
--- Returns Nth fan's speed in RPM
-function conky_fanrpm(n)
-    if tonumber(conky_parse("$updates")) % 2 == 0 or fan == 0 then
-        local all_hwmon_fan = io.popen('ls /sys/class/hwmon/*/fan?_input')
-        for l in all_hwmon_fan:lines() do
-            if l:match('fan' .. n .. '_input') then
-                local fan_file = io.open(l, 'r')
-                local fan_rpm = tonumber(fan_file:read('*a'))
-                fan = fan_rpm
-                return fan_rpm
-            end
-        end
-        all_hwmon_fan:close()
-    end
-    return fan
 end
 
 -- Trims given string and returns
